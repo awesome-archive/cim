@@ -25,16 +25,26 @@ public class AppConfiguration {
     @Value("${cim.server.port}")
     private int cimServerPort;
 
-    @Value("${cim.clear.route.request.url}")
-    private String clearRouteUrl ;
+    @Value("${cim.route.url}")
+    private String routeUrl;
 
-    public String getClearRouteUrl() {
-        return clearRouteUrl;
+    public String getRouteUrl() {
+        return routeUrl;
     }
 
-    public void setClearRouteUrl(String clearRouteUrl) {
-        this.clearRouteUrl = clearRouteUrl;
+    public void setRouteUrl(String routeUrl) {
+        this.routeUrl = routeUrl;
     }
+
+    @Value("${cim.heartbeat.time}")
+    private long heartBeatTime;
+
+    @Value("${app.zk.connect.timeout}")
+    private int zkConnectTimeout;
+
+    public int getZkConnectTimeout() {
+		return zkConnectTimeout;
+	}
 
     public String getZkRoot() {
         return zkRoot;
@@ -66,5 +76,13 @@ public class AppConfiguration {
 
     public void setCimServerPort(int cimServerPort) {
         this.cimServerPort = cimServerPort;
+    }
+
+    public long getHeartBeatTime() {
+        return heartBeatTime;
+    }
+
+    public void setHeartBeatTime(long heartBeatTime) {
+        this.heartBeatTime = heartBeatTime;
     }
 }

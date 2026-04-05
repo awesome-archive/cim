@@ -1,164 +1,103 @@
 package com.crossoverjie.cim.client.service.impl;
 
-import com.crossoverjie.cim.client.client.CIMClient;
-import com.crossoverjie.cim.client.config.AppConfiguration;
+import com.crossoverjie.cim.client.sdk.Client;
+import com.crossoverjie.cim.client.service.InnerCommand;
+import com.crossoverjie.cim.client.service.InnerCommandContext;
 import com.crossoverjie.cim.client.service.MsgHandle;
-import com.crossoverjie.cim.client.service.RouteRequest;
-import com.crossoverjie.cim.client.vo.req.GroupReqVO;
-import com.crossoverjie.cim.client.vo.req.P2PReqVO;
-import com.crossoverjie.cim.client.vo.res.OnlineUsersResVO;
-import com.crossoverjie.cim.common.enums.SystemCommandEnumType;
 import com.crossoverjie.cim.common.util.StringUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.crossoverjie.cim.route.api.vo.req.P2PReqVO;
+import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Function:
  *
  * @author crossoverJie
- *         Date: 2018/12/26 11:15
+ * Date: 2018/12/26 11:15
  * @since JDK 1.8
  */
+@Slf4j
 @Service
 public class MsgHandler implements MsgHandle {
-    private final static Logger LOGGER = LoggerFactory.getLogger(MsgHandler.class);
-    @Autowired
-    private RouteRequest routeRequest ;
 
-    @Autowired
-    private AppConfiguration configuration;
 
-    @Autowired
-    private ThreadPoolExecutor executor ;
+    @Resource
+    private InnerCommandContext innerCommandContext;
 
-    @Autowired
-    private CIMClient cimClient ;
+    @Resource
+    private Client client;
+
+    private boolean aiModel = false;
 
     @Override
-    public void sendMsg(String msg) {
-        String[] totalMsg = msg.split(";;");
-        if (totalMsg.length > 1) {
-            //私聊
-            P2PReqVO p2PReqVO = new P2PReqVO();
-            p2PReqVO.setUserId(configuration.getUserId());
-            p2PReqVO.setReceiveUserId(Long.parseLong(totalMsg[0]));
-            p2PReqVO.setMsg(totalMsg[1]);
-            try {
-                p2pChat(p2PReqVO);
-            } catch (Exception e) {
-                LOGGER.error("Exception",e);
-            }
-
+    public void sendMsg(String msg) throws Exception {
+        if (aiModel) {
+            aiChat(msg);
         } else {
-            //群聊
-            GroupReqVO groupReqVO = new GroupReqVO(configuration.getUserId(), msg);
-            try {
-                groupChat(groupReqVO);
-            } catch (Exception e) {
-                LOGGER.error("Exception",e);
-            }
+            normalChat(msg);
         }
     }
 
-    @Override
-    public void groupChat(GroupReqVO groupReqVO) throws Exception {
-        routeRequest.sendGroupMsg(groupReqVO);
+    private void normalChat(String msg) throws Exception {
+        String[] totalMsg = msg.split(";;");
+        if (totalMsg.length > 1) {
+            P2PReqVO p2PReqVO = new P2PReqVO();
+            p2PReqVO.setReceiveUserId(Long.parseLong(totalMsg[0]));
+            p2PReqVO.setMsg(totalMsg[1]);
+            client.sendP2P(p2PReqVO);
+
+        } else {
+            client.sendGroup(msg);
+        }
     }
 
-    @Override
-    public void p2pChat(P2PReqVO p2PReqVO) throws Exception {
-
-        routeRequest.sendP2PMsg(p2PReqVO);
-
+    /**
+     * AI model
+     *
+     * @param msg
+     */
+    private void aiChat(String msg) {
+        msg = msg.replace("吗", "");
+        msg = msg.replace("嘛", "");
+        msg = msg.replace("?", "!");
+        msg = msg.replace("？", "!");
+        msg = msg.replace("你", "我");
+        System.out.println("AI:\033[31;4m" + msg + "\033[0m");
     }
 
     @Override
     public boolean checkMsg(String msg) {
-        if (StringUtil.isEmpty(msg)){
-            LOGGER.warn("不能发送空消息！");
+        if (StringUtil.isEmpty(msg)) {
+            log.warn("不能发送空消息！");
             return true;
         }
         return false;
     }
 
     @Override
-    public boolean innerCommand(String msg) {
+    public boolean innerCommand(String msg) throws Exception {
 
-        if (msg.startsWith(":")){
-            Map<String, String> allStatusCode = SystemCommandEnumType.getAllStatusCode();
+        if (msg.startsWith(":")) {
 
-            if (SystemCommandEnumType.QUIT.getCommandType().trim().equals(msg)){
-                //关闭系统
-                shutdown();
-            } else if (SystemCommandEnumType.ALL.getCommandType().trim().equals(msg)){
-                printAllCommand(allStatusCode);
+            InnerCommand instance = innerCommandContext.getInstance(msg);
+            instance.process(msg);
 
-            } else if (SystemCommandEnumType.ONLINE_USER.getCommandType().toLowerCase().trim().equals(msg.toLowerCase())){
-                //打印在线用户
-                printOnlineUsers();
+            return true;
 
-            }else {
-                printAllCommand(allStatusCode);
-            }
-
-            return true ;
-
-        }else {
-            return false ;
-        }
-
-
-    }
-
-    /**
-     * 打印在线用户
-     */
-    private void printOnlineUsers() {
-        try {
-            List<OnlineUsersResVO.DataBodyBean> onlineUsers = routeRequest.onlineUsers();
-
-            LOGGER.info("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-            for (OnlineUsersResVO.DataBodyBean onlineUser : onlineUsers) {
-                LOGGER.info("userId={}=====userName={}",onlineUser.getUserId(),onlineUser.getUserName());
-            }
-            LOGGER.info("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-
-        } catch (Exception e) {
-            LOGGER.error("Exception" ,e);
+        } else {
+            return false;
         }
     }
 
-    /**
-     * 关闭系统
-     */
-    private void shutdown() {
-        LOGGER.info("系统关闭中。。。。");
-        executor.shutdown();
-        try {
-            while (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
-                LOGGER.info("线程池关闭中。。。。");
-            }
-            cimClient.close();
-        } catch (InterruptedException e) {
-            LOGGER.error("InterruptedException",e);
-        }
-        System.exit(0);
+    @Override
+    public void openAIModel() {
+        aiModel = true;
     }
 
-    private void printAllCommand(Map<String, String> allStatusCode) {
-        LOGGER.warn("====================================");
-        for (Map.Entry<String, String> stringStringEntry : allStatusCode.entrySet()) {
-            String key = stringStringEntry.getKey();
-            String value = stringStringEntry.getValue();
-            LOGGER.warn(key + "----->" + value);
-        }
-        LOGGER.warn("====================================");
+    @Override
+    public void closeAIModel() {
+        aiModel = false;
     }
+
 }

@@ -1,31 +1,29 @@
 package com.crossoverjie.cim.route;
 
-import com.crossoverjie.cim.route.kit.ServerListListener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.context.annotation.ComponentScan;
 
 /**
  * @author crossoverJie
  */
-@SpringBootApplication
-public class RouteApplication implements CommandLineRunner{
-
-	private final static Logger LOGGER = LoggerFactory.getLogger(RouteApplication.class);
+@Slf4j
+@SpringBootApplication(exclude = DataSourceAutoConfiguration.class)
+@ComponentScan(basePackages = {
+		"com.crossoverjie.cim.route",
+		"com.crossoverjie.cim.persistence"
+})
+public class RouteApplication implements CommandLineRunner {
 
 	public static void main(String[] args) {
         SpringApplication.run(RouteApplication.class, args);
-		LOGGER.info("启动 route 成功");
+		log.info("Start cim route success!!!");
 	}
 
 	@Override
 	public void run(String... args) throws Exception {
-
-		//监听服务
-		Thread thread = new Thread(new ServerListListener());
-		thread.setName("zk-listener");
-		thread.start() ;
 	}
 }

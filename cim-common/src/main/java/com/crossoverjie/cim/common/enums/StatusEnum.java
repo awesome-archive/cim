@@ -3,26 +3,41 @@ package com.crossoverjie.cim.common.enums;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * @author crossoverJie
+ */
+
 public enum StatusEnum {
 
     /** 成功 */
-    SUCCESS("9000", "成功"),
+    SUCCESS("9000", "Success"),
     /** 成功 */
     FALLBACK("8000", "FALL_BACK"),
     /** 参数校验失败**/
-    VALIDATION_FAIL("3000", "参数校验失败"),
+    VALIDATION_FAIL("3000", "invalid argument"),
     /** 失败 */
-    FAIL("4000", "失败"),
+    FAIL("4000", "Failure"),
 
     /** 重复登录 */
-    REPEAT_LOGIN("5000", "账号重复登录，请退出一个账号！"),
-
-    /** 账号不在线 */
-    OFF_LINE("7000", "你选择的账号不在线，请重新选择！"),
+    REPEAT_LOGIN("5000", "Repeat login, log out an account please!"),
 
     /** 请求限流 */
     REQUEST_LIMIT("6000", "请求限流"),
-    ;
+
+    /** 账号不在线 */
+    OFF_LINE("7000", "You selected user is offline!, please try again later!"),
+
+    SERVER_NOT_AVAILABLE("7100", "cim server is not available, please try again later!"),
+
+    RECONNECT_FAIL("7200", "Reconnect fail, continue to retry!"),
+    /** 登录信息不匹配 */
+    ACCOUNT_NOT_MATCH("9100", "The User information you have used is incorrect!"),
+
+    OFFLINE_MESSAGE_STORAGE_ERROR("9200", "Offline message storage error!"),
+
+    OFFLINE_MESSAGE_FETCH_ERROR("9201", "Offline message fetch error!"),
+
+    OFFLINE_MESSAGE_DELETE_ERROR("9202", "Offline message delete error!");
 
 
     /** 枚举值码 */

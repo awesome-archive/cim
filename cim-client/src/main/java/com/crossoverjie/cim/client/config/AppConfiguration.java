@@ -1,5 +1,6 @@
 package com.crossoverjie.cim.client.config;
 
+import lombok.Data;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Component;
  * @since JDK 1.8
  */
 @Component
+@Data
 public class AppConfiguration {
 
     @Value("${cim.user.id}")
@@ -19,19 +21,19 @@ public class AppConfiguration {
     @Value("${cim.user.userName}")
     private String userName;
 
-    public Long getUserId() {
-        return userId;
-    }
+    @Value("${cim.msg.logger.path}")
+    private String msgLoggerPath;
 
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
+    @Value("${cim.heartbeat.time}")
+    private long heartBeatTime;
 
-    public String getUserName() {
-        return userName;
-    }
+    @Value("${cim.reconnect.count}")
+    private int reconnectCount;
 
-    public void setUserName(String userName) {
-        this.userName = userName;
-    }
+    @Value("${cim.route.url}")
+    private String routeUrl;
+    @Value("${cim.callback.thread.queue.size}")
+    private int queueSize;
+    @Value("${cim.callback.thread.pool.size}")
+    private int poolSize;
 }

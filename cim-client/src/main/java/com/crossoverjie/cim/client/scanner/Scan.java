@@ -1,12 +1,11 @@
 package com.crossoverjie.cim.client.scanner;
 
-import com.crossoverjie.cim.client.config.AppConfiguration;
+import com.crossoverjie.cim.client.sdk.Event;
 import com.crossoverjie.cim.client.service.MsgHandle;
+import com.crossoverjie.cim.client.service.MsgLogger;
 import com.crossoverjie.cim.client.util.SpringBeanFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Scanner;
+import lombok.SneakyThrows;
 
 /**
  * Function:
@@ -17,41 +16,40 @@ import java.util.Scanner;
  */
 public class Scan implements Runnable {
 
-    private final static Logger LOGGER = LoggerFactory.getLogger(Scan.class);
 
-    /**
-     * 系统参数
-     */
-    private AppConfiguration configuration;
+    private final MsgHandle msgHandle;
 
-    private MsgHandle msgHandle ;
+    private final MsgLogger msgLogger;
+    private final Event event;
 
     public Scan() {
-        this.configuration = SpringBeanFactory.getBean(AppConfiguration.class);
-        this.msgHandle = SpringBeanFactory.getBean(MsgHandle.class) ;
+        this.msgHandle = SpringBeanFactory.getBean(MsgHandle.class);
+        this.msgLogger = SpringBeanFactory.getBean(MsgLogger.class);
+        this.event = SpringBeanFactory.getBean(Event.class);
     }
 
+    @SneakyThrows
     @Override
     public void run() {
         Scanner sc = new Scanner(System.in);
         while (true) {
             String msg = sc.nextLine();
 
-            //检查消息
             if (msgHandle.checkMsg(msg)) {
                 continue;
             }
 
-            //系统内置命令
-            if (msgHandle.innerCommand(msg)){
+            // internal cmd
+            if (msgHandle.innerCommand(msg)) {
                 continue;
             }
 
-            //真正的发送消息
-            msgHandle.sendMsg(msg) ;
+            msgHandle.sendMsg(msg);
 
+            // write to log
+            msgLogger.log(msg);
 
-            LOGGER.info("{}:【{}】", configuration.getUserName(), msg);
+            event.info(msg);
         }
     }
 

@@ -17,14 +17,19 @@ public class SessionSocketHolder {
     private static final Map<Long, NioSocketChannel> CHANNEL_MAP = new ConcurrentHashMap<>(16);
     private static final Map<Long, String> SESSION_MAP = new ConcurrentHashMap<>(16);
 
-    public static void saveSession(Long userId,String userName){
+    public static void saveSession(Long userId, String userName) {
         SESSION_MAP.put(userId, userName);
     }
 
-    public static void removeSession(Long userId){
-        SESSION_MAP.remove(userId) ;
+    public static void removeSession(Long userId) {
+        SESSION_MAP.remove(userId);
     }
 
+    /**
+     * Save the relationship between the userId and the channel.
+     * @param id
+     * @param socketChannel
+     */
     public static void put(Long id, NioSocketChannel socketChannel) {
         CHANNEL_MAP.put(id, socketChannel);
     }
@@ -33,7 +38,7 @@ public class SessionSocketHolder {
         return CHANNEL_MAP.get(id);
     }
 
-    public static Map<Long, NioSocketChannel> getMAP() {
+    public static Map<Long, NioSocketChannel> getRelationShip() {
         return CHANNEL_MAP;
     }
 
@@ -46,14 +51,14 @@ public class SessionSocketHolder {
      * @param nioSocketChannel
      * @return
      */
-    public static CIMUserInfo getUserId(NioSocketChannel nioSocketChannel){
+    public static CIMUserInfo getUserId(NioSocketChannel nioSocketChannel) {
         for (Map.Entry<Long, NioSocketChannel> entry : CHANNEL_MAP.entrySet()) {
             NioSocketChannel value = entry.getValue();
-            if (nioSocketChannel == value){
+            if (nioSocketChannel == value) {
                 Long key = entry.getKey();
                 String userName = SESSION_MAP.get(key);
-                CIMUserInfo info = new CIMUserInfo(key,userName) ;
-                return info ;
+                CIMUserInfo info = new CIMUserInfo(key, userName);
+                return info;
             }
         }
 

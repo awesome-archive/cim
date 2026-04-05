@@ -1,10 +1,9 @@
 package com.crossoverjie.cim.server.server;
 
-import com.crossoverjie.cim.common.constant.Constants;
-import com.crossoverjie.cim.common.protocol.CIMRequestProto;
+import com.crossoverjie.cim.common.protocol.Request;
+import com.crossoverjie.cim.server.api.vo.req.SendMsgReqVO;
 import com.crossoverjie.cim.server.init.CIMServerInitializer;
 import com.crossoverjie.cim.server.util.SessionSocketHolder;
-import com.crossoverjie.cim.server.vo.req.SendMsgReqVO;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
@@ -13,14 +12,12 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import java.net.InetSocketAddress;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import java.net.InetSocketAddress;
 
 /**
  * Function:
@@ -30,9 +27,9 @@ import java.net.InetSocketAddress;
  * @since JDK 1.8
  */
 @Component
+@Slf4j
 public class CIMServer {
 
-    private final static Logger LOGGER = LoggerFactory.getLogger(CIMServer.class);
 
     private EventLoopGroup boss = new NioEventLoopGroup();
     private EventLoopGroup work = new NioEventLoopGroup();
@@ -61,7 +58,7 @@ public class CIMServer {
 
         ChannelFuture future = bootstrap.bind().sync();
         if (future.isSuccess()) {
-            LOGGER.info("启动 cim server 成功");
+            log.info("Start cim server success!!!");
         }
     }
 
@@ -73,28 +70,38 @@ public class CIMServer {
     public void destroy() {
         boss.shutdownGracefully().syncUninterruptibly();
         work.shutdownGracefully().syncUninterruptibly();
-        LOGGER.info("关闭 cim server 成功");
+        log.info("Close cim server success!!!");
     }
 
 
     /**
-     * 发送 Google Protocol 编码消息
-     * @param sendMsgReqVO 消息
+     * Push msg to client.
+     * @param sendMsgReqVO message body
      */
-    public void sendMsg(SendMsgReqVO sendMsgReqVO){
+    public void sendMsg(SendMsgReqVO sendMsgReqVO) {
         NioSocketChannel socketChannel = SessionSocketHolder.get(sendMsgReqVO.getUserId());
 
         if (null == socketChannel) {
-            throw new NullPointerException("客户端[" + sendMsgReqVO.getUserId() + "]不在线！");
+            log.error("client {} offline!", sendMsgReqVO.getUserId());
+            return;
         }
-        CIMRequestProto.CIMReqProtocol protocol = CIMRequestProto.CIMReqProtocol.newBuilder()
+
+        Request.Builder requestBuilder = Request.newBuilder()
                 .setRequestId(sendMsgReqVO.getUserId())
-                .setReqMsg(sendMsgReqVO.getMsg())
-                .setType(Constants.CommandType.MSG)
-                .build();
+                .putAllProperties(sendMsgReqVO.getProperties())
+                .setCmd(sendMsgReqVO.getCmd());
+
+        boolean isBatch = sendMsgReqVO.getBatchMsg() != null && sendMsgReqVO.getBatchMsg().size() > 0;
+        if (isBatch) {
+            requestBuilder.addAllBatchReqMsg(sendMsgReqVO.getBatchMsg());
+        } else {
+            requestBuilder.setReqMsg(sendMsgReqVO.getMsg());
+        }
+
+        Request protocol = requestBuilder.build();
 
         ChannelFuture future = socketChannel.writeAndFlush(protocol);
         future.addListener((ChannelFutureListener) channelFuture ->
-                LOGGER.info("服务端手动发送 Google Protocol 成功={}", sendMsgReqVO.toString()));
+                log.info("server push {} msg:[{}], socketChannel:{}", isBatch ? "batch" : "single", sendMsgReqVO, socketChannel));
     }
 }
